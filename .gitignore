@@ -1,1 +1,4 @@
 _pycache/*
+api_key
+neg_label_results.csv
+logs/*
