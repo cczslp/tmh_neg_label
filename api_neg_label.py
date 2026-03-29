@@ -3,11 +3,17 @@ import json
 import os
 import re
 import time
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
 
 from openai import OpenAI
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None  # type: ignore[misc, assignment]
 
 NEGATIVE_LABELS = [
     "色情擦边",
@@ -206,30 +212,48 @@ class NegLabelClient:
             if write_header:
                 writer.writeheader()
 
-            for batch_start in range(0, len(titles), batch_size):
-                batch = titles[batch_start: batch_start + batch_size]
-                print(
-                    f"[INFO] 处理第 {batch_start + 1}–{batch_start + len(batch)} 条标题"
-                    f"（共 {len(titles)} 条）…"
+            pbar_ctx = (
+                tqdm(
+                    total=len(titles),
+                    desc="打标",
+                    unit="条",
+                    smoothing=0.05,
                 )
-                try:
-                    raw = self._call_api(batch)
-                    results = self._parse_response(batch, raw)
-                except Exception as exc:
-                    print(f"[ERROR] 批次处理失败: {exc}")
-                    results = [
-                        LabelResult(
-                            title=t,
-                            is_negative=False,
-                            negative_labels=[],
+                if tqdm is not None
+                else nullcontext()
+            )
+            with pbar_ctx as pbar:
+                for batch_start in range(0, len(titles), batch_size):
+                    batch = titles[batch_start: batch_start + batch_size]
+                    if pbar is None or tqdm is None:
+                        print(
+                            f"[INFO] 处理第 {batch_start + 1}–{batch_start + len(batch)} 条标题"
+                            f"（共 {len(titles)} 条）…"
                         )
-                        for t in batch
-                    ]
+                    try:
+                        raw = self._call_api(batch)
+                        results = self._parse_response(batch, raw)
+                    except Exception as exc:
+                        msg = f"[ERROR] 批次处理失败: {exc}"
+                        if tqdm is not None and pbar is not None:
+                            tqdm.write(msg)
+                        else:
+                            print(msg)
+                        results = [
+                            LabelResult(
+                                title=t,
+                                is_negative=False,
+                                negative_labels=[],
+                            )
+                            for t in batch
+                        ]
 
-                for r in results:
-                    writer.writerow(r.to_dict())
-                f.flush()
-                all_results.extend(results)
+                    for r in results:
+                        writer.writerow(r.to_dict())
+                    f.flush()
+                    all_results.extend(results)
+                    if pbar is not None:
+                        pbar.update(len(batch))
 
         print(f"[INFO] 打标完成，结果已追加至 {output_path.resolve()}")
         return all_results
