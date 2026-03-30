@@ -11,3 +11,11 @@ python main.py --input data/douyin \
     --method api \
     --base-url https://api.siliconflow.cn/v1 \
     --model deepseek-ai/DeepSeek-V3.2 > logs/douyin_ds_label.log 2>&1
+
+# ds v2 test
+python main.py --input output/ks_ds_test.xlsx \
+    --column title --max-items 10000 --batch-size 10 \
+    --output output/ks_ds_v2_test_label.xlsx \
+    --method api \
+    --base-url https://api.siliconflow.cn/v1 \
+    --model deepseek-ai/DeepSeek-V3.2 > logs/ks_ds_v2_test_label.log 2>&1
