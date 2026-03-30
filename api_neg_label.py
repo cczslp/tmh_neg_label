@@ -288,6 +288,10 @@ if __name__ == "__main__":
         base_url="https://api.siliconflow.cn/v1",
         model="deepseek-ai/DeepSeek-V3.2",
     )
+    # client = NegLabelClient(
+    #     base_url="https://api.openai.com/v1",
+    #     model="gpt-5.4-2026-03-05",
+    # )
 
     sample_titles = [
         "超性感小姐姐教你这样穿，男生都把持不住了",
